@@ -1,0 +1,17 @@
+{
+  "name": "cp-scanner",
+  "version": "0.0.1",
+  "description": "",
+  "main": "index.js",
+  "type": "module",
+  "scripts": {
+    "clean": "rm -rf ./dist",
+    "tsc": "rm -rf dist && tsc"
+  },
+  "devDependencies": {
+    "@types/node": "^20.12.7",
+    "typescript": "^5.4.5"
+  },
+  "author": "",
+  "license": "ISC"
+}
