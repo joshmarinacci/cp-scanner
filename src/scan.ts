@@ -1,8 +1,16 @@
 import fs from 'fs'
 import path from 'path'
 import * as process from "node:process";
+import {BOARDS} from "./boards.js";
 
 
+
+/*
+    * print how to reboot this board into bootloader mode
+    * Find latest libs DL online
+    * make a public repo with a script you can `npm install -g`
+    * list libs currently on the board
+ */
 let vols = await fs.promises.readdir("/Volumes")
 console.log("vols",vols)
 
@@ -16,14 +24,14 @@ const cp_drive = '/Volumes/CIRCUITPY'
 console.log("drive is",cp_drive)
 
 let files = await fs.promises.readdir(cp_drive)
-console.log("files are",files)
+// console.log("files are",files)
 
 const boot_text = await fs.promises.readFile(path.join(cp_drive,'boot_out.txt'))
 const boot_info = boot_text.toString().split('\n')
 
-let board_id = null
+let board_id = ""
 for(let line of boot_info) {
-    console.log("boot line: ", line)
+    // console.log("boot line: ", line)
     let res = line.match(/^Board ID:(?<board_id>.*)/)
     if(res && res.groups) {
         console.log("found the board", res.groups['board_id'])
@@ -40,37 +48,57 @@ for(let line of boot_info) {
 }
 
 
-
-let libs = await fs.promises.readdir(path.join(cp_drive,'lib'))
-// console.log("libs",libs)
-for(let lib_name of libs) {
-    // console.log("parsing",lib_name)
-    let lib_path =path.join(cp_drive,'lib',lib_name)
-    let stats = await fs.promises.stat(lib_path)
-    if(stats.isFile()) {
-        console.log("library ",lib_name);
-        let lib_raw = await fs.promises.readFile(lib_path)
-        let mpy_version = String.fromCodePoint(lib_raw[0]);
-        let sub_version = lib_raw[1]
-        // console.log(`mpy_version ${mpy_version} . ${sub_version}`)
-        if(mpy_version === 'C' && sub_version === 6) {
-            // console.log("two byte mpy version 6")
-            let compatibility = ["9.0.0-alpha.1","none"]
-            let lib_str = lib_raw.toString("utf-8")
-            let match = lib_str.match(/(?<lib_version>[\d]+\.[\d]+\.[\d]+)\x00/)
-            if(match && match.groups) {
-                console.log("library version number is", match.groups['lib_version']);
+async function print_libs() {
+    console.log("doing libs")
+    let libs = await fs.promises.readdir(path.join(cp_drive,'lib'))
+    console.log("libs",libs)
+    for(let lib_name of libs) {
+        // console.log("parsing",lib_name)
+        let lib_path =path.join(cp_drive,'lib',lib_name)
+        let stats = await fs.promises.stat(lib_path)
+        if(stats.isFile()) {
+            console.log("library ",lib_name);
+            let lib_raw = await fs.promises.readFile(lib_path)
+            let mpy_version = String.fromCodePoint(lib_raw[0]);
+            let sub_version = lib_raw[1]
+            // console.log(`mpy_version ${mpy_version} . ${sub_version}`)
+            if(mpy_version === 'C' && sub_version === 6) {
+                // console.log("two byte mpy version 6")
+                let compatibility = ["9.0.0-alpha.1","none"]
+                let lib_str = lib_raw.toString("utf-8")
+                let match = lib_str.match(/(?<lib_version>[\d]+\.[\d]+\.[\d]+)\x00/)
+                if(match && match.groups) {
+                    console.log("library version number is", match.groups['lib_version']);
+                }
             }
+            // console.log("first bytes are",String.fromCodePoint(lib_raw[0]), lib_raw[1])
         }
-        // console.log("first bytes are",String.fromCodePoint(lib_raw[0]), lib_raw[1])
     }
 }
 
+await print_libs()
 
-const release_url = 'https://github.com/adafruit/circuitpython/releases/latest'
-console.log("looking for the latest release")
-let resp = await fetch(release_url)
-let latest_cp_release = resp.url.split("/").at(-1)
-console.log("the response is",latest_cp_release)
+async function fetch_latest_release(board_id: string) {
+    const release_url = 'https://github.com/adafruit/circuitpython/releases/latest'
+    console.log("looking for the latest release")
+    let resp = await fetch(release_url)
+    let latest_cp_release = resp.url.split("/").at(-1)
+    console.log("the response is",latest_cp_release)
+    console.log(`the newest version of CP for your board can be found at \nhttps://circuitpython.org/board/${board_id}`)
+}
 
-console.log(`a new version of CP for your board can be found at https://circuitpython.org/board/${board_id}`)
+await fetch_latest_release(board_id)
+
+async function print_board_info(board_id: string) {
+    let board = BOARDS.find(b => b.id === board_id)
+    if(board) {
+        console.log("found the board", board)
+    } else {
+        console.log(`no board def found for ${board_id}`)
+    }
+    console.log("boards",BOARDS)
+}
+
+await print_board_info(board_id);
+
+console.log("done")

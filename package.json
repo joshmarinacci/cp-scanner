@@ -6,7 +6,8 @@
   "type": "module",
   "scripts": {
     "clean": "rm -rf ./dist",
-    "tsc": "rm -rf dist && tsc"
+    "tsc": "rm -rf dist && tsc",
+    "scan": "npm run tsc && node dist/scan.js"
   },
   "devDependencies": {
     "@types/node": "^20.12.7",
